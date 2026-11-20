@@ -1,0 +1,11 @@
+# Local settings (may hold a Calimero member key)
+config.json
+.venv/
+__pycache__/
+*.pyc
+# Never commit recordings or meeting output
+*.wav
+*.m4a
+*.mp3
+out/
+PrivateNotes/

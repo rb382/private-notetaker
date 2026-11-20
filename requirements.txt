@@ -1,0 +1,8 @@
+fastapi>=0.110,<1
+uvicorn>=0.29,<1
+pydantic>=2.6,<3
+numpy>=1.26,<3
+sounddevice>=0.4.6,<1
+faster-whisper>=1.1,<2
+# PyAV 19 removed an option faster-whisper 1.2 uses to decode audio; keep below 19 until faster-whisper catches up.
+av>=11,<19

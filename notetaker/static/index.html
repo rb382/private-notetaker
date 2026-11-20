@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Private Notetaker</title>
+<style>
+:root{
+  /* layout: one narrow column; consent and controls first, past meetings below */
+  --ground:#F6F7F4; --card:#FFFFFF; --ink:#14201B; --muted:#4A5851; --line:#D3D9D4; --accent:#0F5C45; --on-accent:#FFFFFF; --rec:#B3261E; --soft:#E7F0EB;
+  --body:'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --ground:#111714; --card:#1A221E; --ink:#EEF2EE; --muted:#B4C0B8; --line:#35423B; --accent:#57C39E; --on-accent:#0C1A14; --rec:#FF8A80; --soft:#20302A; color-scheme: dark; }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5}
+main{max-width:760px;margin:0 auto;padding:28px 20px 48px;display:flex;flex-direction:column;gap:18px}
+h1{margin:0;font-size:26px;font-weight:600}
+h2{margin:0;font-size:18px;font-weight:600}
+.sub{margin:2px 0 0;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.terms{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+label{font-weight:600;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:12px}
+.field{display:flex;flex-direction:column;gap:6px;flex:1 1 220px}
+input[type=text],input[type=number],select{font:inherit;min-height:44px;padding:8px 10px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
+.check{display:flex;gap:10px;align-items:flex-start;font-weight:600}
+.check input{width:22px;height:22px;margin-top:1px;accent-color:var(--accent)}
+button{font:inherit;font-weight:600;min-height:44px;padding:0 18px;border-radius:10px;border:1.5px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+button.stop{background:var(--rec);border-color:var(--rec);color:#fff}
+button:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.live{display:flex;align-items:center;gap:12px}
+.dot{width:14px;height:14px;border-radius:50%;background:var(--rec);flex:none}
+@media (prefers-reduced-motion: no-preference){ .dot{animation:pulse 1.4s ease-in-out infinite} }
+@keyframes pulse{50%{opacity:.35}}
+.timer{font-variant-numeric:tabular-nums;font-size:22px;font-weight:600}
+.meter{flex:1;height:10px;background:var(--soft);border-radius:5px;overflow:hidden}
+.meter span{display:block;height:100%;width:0;background:var(--accent);transition:width .1s linear}
+.bar{height:8px;background:var(--soft);border-radius:4px;overflow:hidden}
+.bar span{display:block;height:100%;width:0;background:var(--accent)}
+.msg{margin:0;color:var(--muted)}
+.err{color:var(--rec);font-weight:600;margin:0}
+.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.list li{border-top:1px solid var(--line)}
+.list li:first-child{border-top:none}
+.list button{width:100%;text-align:left;border:none;border-radius:8px;padding:10px 6px;display:flex;justify-content:space-between;gap:12px;font-weight:500}
+.list button:hover{background:var(--soft)}
+.when{color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tabs button[aria-selected=true]{background:var(--soft);border-color:var(--accent)}
+pre{margin:0;white-space:pre-wrap;word-break:break-word;font-family:var(--body);font-size:15px;background:var(--ground);border-radius:10px;padding:14px;max-height:460px;overflow:auto}
+.hidden{display:none !important}
+details summary{cursor:pointer;font-weight:600;min-height:32px}
+.pill{display:inline-block;font-size:13px;font-weight:600;padding:2px 10px;border-radius:999px;background:var(--soft)}
+</style>
+</head>
+<body>
+<main>
+<header>
+<h1>Private Notetaker</h1>
+<p class="sub">Everything runs on this computer. Audio is deleted once the transcript is written.</p>
+</header>
+
+<p class="err hidden" id="fatal"></p>
+
+<section class="card" id="setup" aria-labelledby="h-before">
+<h2 id="h-before">Before you start, tell everyone</h2>
+<ol class="terms">
+<li>This meeting will be written down word for word, and summarised.</li>
+<li>The audio is deleted as soon as that is done.</li>
+<li>Only the people in this meeting get the transcript and notes.</li>
+<li>Anyone can say no, or stop it at any time.</li>
+</ol>
+<div class="row">
+<div class="field"><label for="title">Meeting name</label><input type="text" id="title" placeholder="e.g. Weekly team sync" maxlength="80"></div>
+<div class="field" style="flex:0 1 160px"><label for="people">People present</label><input type="number" id="people" min="1" max="50" placeholder="Optional"></div>
+</div>
+<div class="field"><label for="device">Microphone</label><select id="device"></select></div>
+<label class="check"><input type="checkbox" id="consent"> Everyone here has heard this and agreed.</label>
+<div class="row"><button class="primary" id="start" disabled>Start listening</button></div>
+</section>
+
+<section class="card hidden" id="recording" aria-live="polite">
+<div class="live"><span class="dot" aria-hidden="true"></span><span class="timer" id="timer">00:00</span><span>Listening</span></div>
+<div class="live"><span class="msg">Sound level</span><div class="meter" aria-hidden="true"><span id="level"></span></div></div>
+<p class="err hidden" id="audiowarn"></p>
+<div class="row">
+<button class="primary" id="stop">Stop and write notes</button>
+<button class="stop" id="discard">Stop and keep nothing</button>
+</div>
+</section>
+
+<section class="card hidden" id="processing" aria-live="polite">
+<h2>Working on it</h2>
+<p class="msg" id="pmsg">Preparing.</p>
+<div class="bar"><span id="pbar"></span></div>
+</section>
+
+<section class="card" aria-labelledby="h-past">
+<h2 id="h-past">Past meetings</h2>
+<ul class="list" id="meetings"></ul>
+<p class="msg hidden" id="nomeetings">No meetings yet.</p>
+</section>
+
+<section class="card hidden" id="detail" aria-labelledby="d-title">
+<div class="row" style="justify-content:space-between;align-items:center">
+<h2 id="d-title"></h2>
+<div class="row"><button id="copy">Copy</button><button id="openfolder">Open folder</button></div>
+</div>
+<div class="tabs" role="tablist">
+<button role="tab" id="t-notes" aria-selected="true">Notes</button>
+<button role="tab" id="t-transcript" aria-selected="false">Full transcript</button>
+<button role="tab" id="t-receipt" aria-selected="false">Receipt</button>
+</div>
+<pre id="d-body" tabindex="0"></pre>
+</section>
+
+<section class="card">
+<details>
+<summary>Settings</summary>
+<div class="row" style="margin-top:12px">
+<div class="field"><label for="model">Speech model</label><select id="model"></select></div>
+<div class="field"><label for="lang">Language</label><select id="lang"><option value="en">English</option><option value="auto">Detect automatically</option><option value="es">Spanish</option><option value="fr">French</option><option value="zh">Mandarin</option><option value="hi">Hindi</option><option value="da">Danish</option></select></div>
+<div class="field"><label for="notesmodel">Notes model (Ollama)</label><input type="text" id="notesmodel"></div>
+</div>
+<p class="msg" id="ollama"></p>
+<p class="msg" id="where"></p>
+<p class="msg">Models ending in .en are English only. For other languages pick small or large-v3. parakeet-v3 covers 25 European languages and needs the optional Parakeet install.</p>
+<div class="row"><button id="save">Save settings</button></div>
+</details>
+</section>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+async function api(path, opts = {}) {
+  const r = await fetch(path, {...opts, headers: {'Content-Type': 'application/json', 'X-Notetaker': '1', ...(opts.headers || {})}});
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.detail || ('Request failed: ' + r.status));
+  return data;
+}
+const fmt = s => { s = Math.floor(s); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ':' + String(m).padStart(2, '0') : String(m).padStart(2, '0')) + ':' + String(x).padStart(2, '0'); };
+const fatal = msg => { $('fatal').textContent = msg; $('fatal').classList.toggle('hidden', !msg); };
+
+let lastState = null, view = {id: null, data: null, tab: 'notes'};
+
+function show(state) {
+  $('setup').classList.toggle('hidden', state === 'recording' || state === 'processing');
+  $('recording').classList.toggle('hidden', state !== 'recording');
+  $('processing').classList.toggle('hidden', state !== 'processing');
+}
+
+async function loadInfo() {
+  const info = await api('/api/info');
+  const sel = $('device'); sel.innerHTML = '';
+  if (!info.devices.length) {
+    fatal(info.audio_error ? 'No audio system found: ' + info.audio_error : 'No microphone found. Plug one in and reload this page.');
+  }
+  for (const d of info.devices) {
+    const o = document.createElement('option'); o.value = d.id;
+    o.textContent = d.name + (d.api ? '  (' + d.api + ')' : '') + (d.default ? '  - default' : '');
+    sel.appendChild(o);
+  }
+  const m = $('model'); m.innerHTML = '';
+  for (const name of info.speech_models) { const o = document.createElement('option'); o.value = o.textContent = name; m.appendChild(o); }
+  m.value = info.settings.speech_model; $('lang').value = info.settings.language; $('notesmodel').value = info.settings.notes_model;
+  $('ollama').textContent = info.ollama ? 'Ollama is running, so notes will be written on this computer.' : 'Ollama is not running. You will get the transcript but no summary notes. See the README to add it.';
+  $('where').textContent = 'Saved in: ' + info.settings.notes_dir;
+}
+
+async function loadMeetings() {
+  const list = await api('/api/meetings');
+  const ul = $('meetings'); ul.innerHTML = '';
+  $('nomeetings').classList.toggle('hidden', list.length > 0);
+  for (const m of list) {
+    const li = document.createElement('li'); const b = document.createElement('button');
+    const t = document.createElement('span'); t.textContent = m.title + (m.has_notes ? '' : m.has_transcript ? '  (transcript only)' : '');
+    const w = document.createElement('span'); w.className = 'when'; w.textContent = m.started_at ? new Date(m.started_at).toLocaleString([], {dateStyle: 'medium', timeStyle: 'short'}) : '';
+    b.append(t, w); b.onclick = () => openMeeting(m.id); li.appendChild(b); ul.appendChild(li);
+  }
+}
+
+async function openMeeting(id) {
+  view.id = id; view.data = await api('/api/meetings/' + encodeURIComponent(id));
+  $('d-title').textContent = (view.data.receipt && view.data.receipt.title) || id;
+  $('detail').classList.remove('hidden');
+  setTab(view.data.notes ? 'notes' : 'transcript');
+  $('detail').scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+function setTab(tab) {
+  view.tab = tab;
+  for (const t of ['notes', 'transcript', 'receipt']) $('t-' + t).setAttribute('aria-selected', String(t === tab));
+  const d = view.data || {};
+  $('d-body').textContent = tab === 'notes' ? (d.notes || 'No notes for this meeting. The full transcript is available.')
+    : tab === 'transcript' ? (d.transcript || 'No transcript.')
+    : (d.receipt ? JSON.stringify(d.receipt, null, 2) : 'No receipt.');
+}
+for (const t of ['notes', 'transcript', 'receipt']) $('t-' + t).onclick = () => setTab(t);
+$('copy').onclick = async () => { try { await navigator.clipboard.writeText($('d-body').textContent); $('copy').textContent = 'Copied'; setTimeout(() => $('copy').textContent = 'Copy', 1500); } catch (e) { $('copy').textContent = 'Copy failed'; } };
+$('openfolder').onclick = () => view.id && api('/api/meetings/' + encodeURIComponent(view.id) + '/open', {method: 'POST'}).catch(e => fatal(e.message));
+
+$('consent').onchange = () => { $('start').disabled = !$('consent').checked; };
+$('start').onclick = async () => {
+  fatal('');
+  try {
+    await api('/api/start', {method: 'POST', body: JSON.stringify({title: $('title').value, device: Number($('device').value), consent: $('consent').checked, people: $('people').value ? Number($('people').value) : null})});
+    poll();
+  } catch (e) { fatal(e.message); }
+};
+$('stop').onclick = async () => { try { await api('/api/stop', {method: 'POST'}); poll(); } catch (e) { fatal(e.message); } };
+$('discard').onclick = async () => { try { await api('/api/stop?discard=true', {method: 'POST'}); poll(); } catch (e) { fatal(e.message); } };
+$('save').onclick = async () => {
+  try { await api('/api/settings', {method: 'POST', body: JSON.stringify({speech_model: $('model').value, language: $('lang').value, notes_model: $('notesmodel').value})}); $('save').textContent = 'Saved'; setTimeout(() => $('save').textContent = 'Save settings', 1500); }
+  catch (e) { fatal(e.message); }
+};
+
+let timer = null;
+async function poll() {
+  clearTimeout(timer);
+  let s;
+  try { s = await api('/api/status'); } catch (e) { fatal('The app has stopped. Start it again from the Start shortcut.'); return; }
+  show(s.state);
+  if (s.state === 'recording') {
+    $('timer').textContent = fmt(s.elapsed); $('level').style.width = Math.round(s.level * 100) + '%';
+    $('audiowarn').textContent = s.audio_warning ? 'Audio warning: ' + s.audio_warning : ''; $('audiowarn').classList.toggle('hidden', !s.audio_warning);
+  }
+  if (s.state === 'processing') {
+    $('pmsg').textContent = s.message || 'Working.';
+    $('pbar').style.width = s.progress == null ? '100%' : Math.round(s.progress * 100) + '%';
+  }
+  if (s.state === 'error' && lastState !== 'error') fatal(s.message);
+  if ((s.state === 'done' || s.state === 'idle') && (lastState === 'processing' || lastState === 'recording')) {
+    $('consent').checked = false; $('start').disabled = true;
+    await loadMeetings();
+    if (s.state === 'done' && s.meeting) openMeeting(s.meeting);
+  }
+  lastState = s.state;
+  if (s.state === 'recording' || s.state === 'processing') timer = setTimeout(poll, s.state === 'recording' ? 250 : 1000);
+}
+
+(async () => {
+  try { await loadInfo(); await loadMeetings(); poll(); } catch (e) { fatal(e.message); }
+})();
+</script>
+</body>
+</html>
