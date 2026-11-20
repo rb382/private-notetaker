@@ -1,4 +1,4 @@
-# Private Notetaker 0.2: handover for Calimero
+# Private Notetaker 0.3: handover for Calimero
 
 From Rune Bentien (Lyrik). Prepared 20 November 2026.
 
@@ -23,10 +23,11 @@ your help with.
 | `notetaker/app.py` | Local web app on http://127.0.0.1:8765 (listens on this machine only) |
 | `notetaker/recorder.py` | Microphone capture to a temporary WAV |
 | `notetaker/pipeline.py` | Transcribe, write notes, delete audio, write the receipt |
-| `notetaker/calimero.py` | Builds the meeting payload and pushes it to a context with `meroctl` |
+| `notetaker/calimero.py` | Builds the meeting payload and stores it in the meetings app (via `meroctl proxy` or `meroctl`) |
 | `notetaker/cli.py` | Command line: process a file without a microphone, or push a meeting |
 | `setup.sh` / `start.sh` | Setup and start on macOS, Linux and ChromeOS |
 | `setup.ps1` / `start.ps1` | The same for Windows |
+| `calimero-app/` | The Calimero meetings app (Rust, `calimero-sdk` 1.0) |
 | `tests/` | Tests with stand-in microphone and speech models (see `tests/README.md`) |
 
 Speech engines: faster-whisper (Whisper `base.en`, `small.en`, `medium.en`, `large-v3-turbo`, `large-v3`)
@@ -60,7 +61,7 @@ I can provide a two-minute English meeting clip; any wav, mp3 or m4a works.
 If the job nodes can't reach Hugging Face, run once on a machine that can and copy the model
 cache (`~/.cache/huggingface`) into the image.
 
-## Test 2: storing a meeting in a Calimero context
+## Test 2: storing a meeting in Calimero
 
 Every finished meeting writes `meeting.json` to its folder. That object is the whole handover
 between the app and Calimero. Schema `notetaker.meeting/1`:
@@ -93,45 +94,73 @@ between the app and Calimero. Schema `notetaker.meeting/1`:
 
 `speaker` is always `null` for now; speaker labels come later (we're looking at Trelis Tiron).
 
-### What we'd like the Calimero app to expose
+### The meetings app (`calimero-app/`)
 
-| Method | Args | Returns |
-|---|---|---|
-| `add_meeting` | `{"meeting": <notetaker.meeting/1>}` | the meeting `id` |
-| `get_meeting` | `{"id": "..."}` | the meeting object |
-| `list_meetings` | `{}` | `[{"id", "title", "started_at"}]` |
-| `delete_meeting` | `{"id": "..."}` | `true` |
+We built the Calimero side too, from `meroctl app new` (SDK `1.0.0-rc.31`), following your
+"build with an agent" guide. It's a standalone crate in `calimero-app/`. Please review it
+against how you'd do it.
 
-Our side already calls `add_meeting`. Switch it on in `config.json`:
+| Method | Kind | Who may call | Does |
+|---|---|---|---|
+| `addMeeting` | call | members of the org (not guests) | stores a meeting; the caller is its host. Args `{"meeting": {...}, "participants": ["<account>", ...]}` |
+| `getMeeting` | view | the meeting's participants | the whole meeting; `NotFound` for anyone else, so its existence isn't revealed |
+| `listMeetings` | view | any account | the meetings the caller can read, oldest first (summaries, no transcript) |
+| `addParticipant` | call | the host | lets one more account (a member or a guest) read it |
+| `leaveMeeting` | call | a participant other than the host | removes their own access |
+| `deleteMeeting` | call | the host | deletes it for everyone |
+
+Events (`MeetingShared`, `ParticipantLeft`, `MeetingDeleted`) go only to the meeting's participants.
+The `meeting` argument is `meeting.json` in camelCase, with the receipt as a JSON string
+(`receiptJson`); `notetaker/calimero.py` `app_args()` does the conversion.
+
+Tests:
+
+```bash
+cd calimero-app
+cargo test --lib            # 9 unit tests on the SDK's mock host, incl. a replay of the scenario
+meroctl local test .        # the scenario on the real engine (needs wasm32-wasip2)
+```
+
+`cargo test --lib` passes. We could not run `meroctl local test` or build the component:
+our build environment can't download the `wasm32-wasip2` target. That's the first thing to try
+on your side.
+
+### Switching on the push
+
+In `config.json`:
 
 ```json
 "calimero": {
   "enabled": true,
-  "meroctl": "meroctl",
-  "node": "node1",
-  "context_id": "<CONTEXT_ID>",
-  "member_key": "<MEMBER_PUBLIC_KEY>",
-  "method": "add_meeting"
+  "instance": "<APP_INSTANCE_ID>",
+  "participants": [],
+  "mode": "proxy",
+  "proxy_url": "http://127.0.0.1:2580"
 }
 ```
 
-That runs `meroctl --node node1 call add_meeting --context <CONTEXT_ID> --as <MEMBER_PUBLIC_KEY> --args '{"meeting": {...}}'`.
-To resend an existing meeting: `.venv/bin/python -m notetaker.cli push <meeting folder>`.
-If you'd rather we use your Python or JS client, only `push()` in `notetaker/calimero.py` needs to change.
+Sign in once (`meroctl login` on a dev cluster, `meroctl cloud login` on Cloud), start
+`meroctl proxy`, and each finished meeting is POSTed to `/apps/<instance>/intents` as
+`addMeeting`, with idempotency key `meeting-<id>`. `"mode": "meroctl"` runs
+`meroctl call --instance <instance> addMeeting --args '<json>'` instead. It's simpler, but the
+arguments go on the command line, so it only suits meetings up to about 20 minutes (5 on Windows).
+To resend a meeting: `.venv/bin/python -m notetaker.cli push <meeting folder>`.
 
-A one-hour transcript is roughly 60-100 KB of JSON. Tell us if that's too large for one call.
+A one-hour transcript is roughly 60-100 KB of JSON, well under the node's 512 KB per call.
 
 ## What we're asking of Calimero
 
 1. Run Test 1 on a CPU job node and share the timings.
-2. Build the small Calimero app with the four methods above, or tell us what you'd change.
-3. Run Test 2 between two nodes and confirm the meeting syncs.
-4. Tell us how a guest could read one meeting through a link, in a browser, with no account.
+2. Review `calimero-app/`, build it and run `meroctl local test`, and tell us what you'd change.
+3. Run Test 2 on a cluster: two accounts, one adds a meeting with the other as participant,
+   the other reads it, and a third member can't.
+4. Tell us how a guest could read one meeting through a link, in a browser, with no account
+   (today the app supports org guests; is an invite link plus passkey the right path?).
 5. Tell us what the signed receipt from a job node contains, so we can merge it into ours.
 6. Tell us the timing for Calimero 1.0 and GPU inference, and whether GPU inference could serve
    a model like Trelis Tiron (Whisper-large based, Apache 2.0, does speaker labels).
 
-## Known limits in 0.2
+## Known limits in 0.3
 
 - Consent is confirmed by the host in the app. The one-tap guest link is designed but not built.
 - No speaker labels yet.

@@ -1,0 +1,37 @@
+[package]
+name = "notetaker-meetings"
+description = "Private Notetaker: each meeting's transcript, notes and receipt, readable only by its participants"
+version = "0.0.1"
+edition = "2021"
+authors = ["Rune Bentien"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/rb382/private-notetaker"
+publish = false
+
+[lib]
+# A `calimero:app` component. The scenario tests run the BUILT component on core's engine
+# (tests/common/mod.rs); the unit tests in src/lib.rs run natively on the SDK's mock host.
+crate-type = ["cdylib"]
+
+[dependencies]
+calimero-sdk = { git = "https://github.com/calimero-network/core", tag = "1.0.0-rc.31" }
+serde = { version = "1", features = ["derive"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+calimero-sdk       = { git = "https://github.com/calimero-network/core", tag = "1.0.0-rc.31", features = ["testing"] }
+calimero-app-build = { git = "https://github.com/calimero-network/core", tag = "1.0.0-rc.31" }
+serde_json = "1"
+
+[package.metadata.calimero]
+package = "io.github.rb382.notetaker-meetings"
+name = "Private Notetaker meetings"
+description = "Meeting transcripts, notes and receipts, shared only with the people who were in the meeting."
+author = "Rune Bentien"
+slug = "io.github.rb382.notetaker-meetings"
+category = "productivity"
+tags = ["notes", "meetings", "privacy"]
+github = "https://github.com/rb382/private-notetaker"
+min-runtime-version = "1.0.0-rc.31"
+
+# Standalone crate with its own Cargo.lock.
+[workspace]

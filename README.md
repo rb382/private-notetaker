@@ -1,4 +1,4 @@
-# Private Notetaker 0.2
+# Private Notetaker 0.3
 
 A first test version. It records a meeting from a microphone, writes a word-for-word
 transcript and summary notes **on this computer**, then deletes the audio.

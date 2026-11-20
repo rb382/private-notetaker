@@ -1,0 +1,411 @@
+[
+ {
+  "as": "gus",
+  "op": "call",
+  "method": "addMeeting",
+  "args": {
+   "meeting": {
+    "id": "m1",
+    "title": "Weekly sync",
+    "startedAt": "2026-11-20T10:00:00Z",
+    "endedAt": "2026-11-20T10:02:00Z",
+    "lengthSeconds": 120.5,
+    "language": "en",
+    "transcript": [
+     {
+      "start": 0.0,
+      "end": 2.5,
+      "speaker": null,
+      "text": "Hello, everyone."
+     }
+    ],
+    "notesMd": "## Key points\n- Ship 0.2",
+    "receiptJson": "{\"audio_deleted\": true}"
+   },
+   "participants": []
+  },
+  "expect": {
+   "error": "MembersOnly"
+  }
+ },
+ {
+  "as": "ann",
+  "op": "call",
+  "method": "addMeeting",
+  "args": {
+   "meeting": {
+    "id": "m1",
+    "title": "Weekly sync",
+    "startedAt": "2026-11-20T10:00:00Z",
+    "endedAt": "2026-11-20T10:02:00Z",
+    "lengthSeconds": 120.5,
+    "language": "en",
+    "transcript": [
+     {
+      "start": 0.0,
+      "end": 2.5,
+      "speaker": null,
+      "text": "Hello, everyone."
+     }
+    ],
+    "notesMd": "## Key points\n- Ship 0.2",
+    "receiptJson": "{\"audio_deleted\": true}"
+   },
+   "participants": [
+    "@gus"
+   ]
+  },
+  "expect": {
+   "ok": null
+  },
+  "events": {
+   "ann": [
+    "MeetingShared"
+   ],
+   "gus": [
+    "MeetingShared"
+   ],
+   "bob": []
+  }
+ },
+ {
+  "as": "ann",
+  "op": "call",
+  "method": "addMeeting",
+  "args": {
+   "meeting": {
+    "id": "m1",
+    "title": "Weekly sync",
+    "startedAt": "2026-11-20T10:00:00Z",
+    "endedAt": "2026-11-20T10:02:00Z",
+    "lengthSeconds": 120.5,
+    "language": "en",
+    "transcript": [
+     {
+      "start": 0.0,
+      "end": 2.5,
+      "speaker": null,
+      "text": "Hello, everyone."
+     }
+    ],
+    "notesMd": "## Key points\n- Ship 0.2",
+    "receiptJson": "{\"audio_deleted\": true}"
+   },
+   "participants": []
+  },
+  "expect": {
+   "error": "AlreadyExists",
+   "fields": {
+    "id": "m1"
+   }
+  }
+ },
+ {
+  "as": "ann",
+  "op": "view",
+  "method": "getMeeting",
+  "args": {
+   "id": "m1"
+  },
+  "expect": {
+   "ok": {
+    "id": "m1",
+    "title": "Weekly sync",
+    "startedAt": "2026-11-20T10:00:00Z",
+    "endedAt": "2026-11-20T10:02:00Z",
+    "lengthSeconds": 120.5,
+    "language": "en",
+    "transcript": [
+     {
+      "start": 0.0,
+      "end": 2.5,
+      "speaker": null,
+      "text": "Hello, everyone."
+     }
+    ],
+    "notesMd": "## Key points\n- Ship 0.2",
+    "receiptJson": "{\"audio_deleted\": true}",
+    "host": "@ann",
+    "participants": [
+     "@ann",
+     "@gus"
+    ]
+   }
+  }
+ },
+ {
+  "as": "gus",
+  "op": "view",
+  "method": "getMeeting",
+  "args": {
+   "id": "m1"
+  },
+  "expect": {
+   "ok": {
+    "id": "m1",
+    "title": "Weekly sync",
+    "startedAt": "2026-11-20T10:00:00Z",
+    "endedAt": "2026-11-20T10:02:00Z",
+    "lengthSeconds": 120.5,
+    "language": "en",
+    "transcript": [
+     {
+      "start": 0.0,
+      "end": 2.5,
+      "speaker": null,
+      "text": "Hello, everyone."
+     }
+    ],
+    "notesMd": "## Key points\n- Ship 0.2",
+    "receiptJson": "{\"audio_deleted\": true}",
+    "host": "@ann",
+    "participants": [
+     "@ann",
+     "@gus"
+    ]
+   }
+  }
+ },
+ {
+  "as": "gus",
+  "op": "view",
+  "method": "listMeetings",
+  "args": {},
+  "expect": {
+   "ok": [
+    {
+     "id": "m1",
+     "title": "Weekly sync",
+     "startedAt": "2026-11-20T10:00:00Z",
+     "lengthSeconds": 120.5,
+     "host": "@ann",
+     "hasNotes": true
+    }
+   ]
+  }
+ },
+ {
+  "as": "bob",
+  "op": "view",
+  "method": "getMeeting",
+  "args": {
+   "id": "m1"
+  },
+  "expect": {
+   "error": "NotFound",
+   "fields": {
+    "id": "m1"
+   }
+  }
+ },
+ {
+  "as": "bob",
+  "op": "view",
+  "method": "listMeetings",
+  "args": {},
+  "expect": {
+   "ok": []
+  }
+ },
+ {
+  "as": "owner",
+  "op": "view",
+  "method": "getMeeting",
+  "args": {
+   "id": "m1"
+  },
+  "expect": {
+   "error": "NotFound",
+   "fields": {
+    "id": "m1"
+   }
+  }
+ },
+ {
+  "as": "mallory",
+  "op": "view",
+  "method": "getMeeting",
+  "args": {
+   "id": "m1"
+  },
+  "expect": {
+   "refused": "NOT_FOUND"
+  }
+ },
+ {
+  "as": "@anonymous",
+  "op": "view",
+  "method": "listMeetings",
+  "args": {},
+  "expect": {
+   "refused": "UNAUTHENTICATED"
+  }
+ },
+ {
+  "as": "gus",
+  "op": "call",
+  "method": "deleteMeeting",
+  "args": {
+   "id": "m1"
+  },
+  "expect": {
+   "error": "HostOnly",
+   "fields": {
+    "id": "m1"
+   }
+  }
+ },
+ {
+  "as": "gus",
+  "op": "call",
+  "method": "addParticipant",
+  "args": {
+   "id": "m1",
+   "account": "@bob"
+  },
+  "expect": {
+   "error": "HostOnly",
+   "fields": {
+    "id": "m1"
+   }
+  }
+ },
+ {
+  "as": "ann",
+  "op": "call",
+  "method": "addParticipant",
+  "args": {
+   "id": "m1",
+   "account": "@bob"
+  },
+  "expect": {
+   "ok": null
+  }
+ },
+ {
+  "as": "bob",
+  "op": "view",
+  "method": "listMeetings",
+  "args": {},
+  "expect": {
+   "ok": [
+    {
+     "id": "m1",
+     "title": "Weekly sync",
+     "startedAt": "2026-11-20T10:00:00Z",
+     "lengthSeconds": 120.5,
+     "host": "@ann",
+     "hasNotes": true
+    }
+   ]
+  }
+ },
+ {
+  "as": "bob",
+  "op": "call",
+  "method": "leaveMeeting",
+  "args": {
+   "id": "m1"
+  },
+  "expect": {
+   "ok": null
+  }
+ },
+ {
+  "as": "bob",
+  "op": "view",
+  "method": "getMeeting",
+  "args": {
+   "id": "m1"
+  },
+  "expect": {
+   "error": "NotFound",
+   "fields": {
+    "id": "m1"
+   }
+  }
+ },
+ {
+  "as": "ann",
+  "op": "call",
+  "method": "leaveMeeting",
+  "args": {
+   "id": "m1"
+  },
+  "expect": {
+   "error": "HostCannotLeave",
+   "fields": {
+    "id": "m1"
+   }
+  }
+ },
+ {
+  "as": "ann",
+  "op": "call",
+  "method": "deleteMeeting",
+  "args": {
+   "id": "m1"
+  },
+  "expect": {
+   "ok": null
+  },
+  "events": {
+   "gus": [
+    "MeetingShared",
+    "ParticipantLeft",
+    "MeetingDeleted"
+   ]
+  }
+ },
+ {
+  "as": "gus",
+  "op": "view",
+  "method": "listMeetings",
+  "args": {},
+  "expect": {
+   "ok": []
+  }
+ },
+ {
+  "as": "ann",
+  "op": "view",
+  "method": "getMeeting",
+  "args": {
+   "id": "m1"
+  },
+  "expect": {
+   "error": "NotFound",
+   "fields": {
+    "id": "m1"
+   }
+  }
+ },
+ {
+  "as": "ann",
+  "op": "call",
+  "method": "addMeeting",
+  "args": {
+   "meeting": {
+    "id": "m1",
+    "title": "Weekly sync",
+    "startedAt": "2026-11-20T10:00:00Z",
+    "endedAt": "2026-11-20T10:02:00Z",
+    "lengthSeconds": 120.5,
+    "language": "en",
+    "transcript": [
+     {
+      "start": 0.0,
+      "end": 2.5,
+      "speaker": null,
+      "text": "Hello, everyone."
+     }
+    ],
+    "notesMd": "## Key points\n- Ship 0.2",
+    "receiptJson": "{\"audio_deleted\": true}"
+   }
+  },
+  "expect": {
+   "error": "BadArgs"
+  }
+ }
+]

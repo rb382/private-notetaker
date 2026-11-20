@@ -1,0 +1,12 @@
+{
+ "members": [
+  "ann",
+  "bob"
+ ],
+ "guests": [
+  "gus"
+ ],
+ "outsiders": [
+  "mallory"
+ ]
+}

@@ -82,7 +82,7 @@ def main(argv=None) -> int:
     p.add_argument("--title")
     p.add_argument("--out", help="Folder for the output (default: ~/PrivateNotes)")
     p.add_argument("--no-notes", action="store_true", help="Skip the Ollama notes step")
-    p.add_argument("--calimero", action="store_true", help="Also push the result to the configured Calimero context")
+    p.add_argument("--calimero", action="store_true", help="Also store the result in the configured Calimero meetings app")
     p.set_defaults(fn=cmd_process)
     q = sub.add_parser("push", help="Send an existing meeting folder's meeting.json to Calimero")
     q.add_argument("meeting_dir")

@@ -238,15 +238,15 @@ def run(audio: Path, meeting_dir: Path, meta: dict, cfg: dict, status: dict) -> 
     receipt["finished_at"] = _now()
     (meeting_dir / "receipt.json").write_text(json.dumps(receipt, indent=2), encoding="utf-8")
 
-    # Export for Calimero: always write meeting.json; push to a context only if switched on.
+    # Export for Calimero: always write meeting.json; store in Calimero only if switched on.
     from . import calimero
     payload = calimero.build_payload(meeting_dir.name, meta, segs, notes_md, receipt)
     (meeting_dir / "meeting.json").write_text(json.dumps(payload, indent=1), encoding="utf-8")
     if cfg.get("calimero", {}).get("enabled"):
-        step("Sending the transcript and notes to the Calimero context.")
+        step("Sending the transcript and notes (text only) to Calimero.")
         try:
             calimero.push(payload, cfg["calimero"])
-            step("Stored in the Calimero context.")
+            step("Stored in Calimero.")
         except Exception as exc:
             step(f"Could not store in Calimero: {exc}. Everything is still saved on this computer.")
         (meeting_dir / "receipt.json").write_text(json.dumps(receipt, indent=2), encoding="utf-8")

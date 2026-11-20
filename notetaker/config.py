@@ -18,14 +18,17 @@ DEFAULTS = {
     "ollama_url": "http://127.0.0.1:11434",
     "notes_model": "llama3.2:3b",
     "port": 8765,
-    # Optional: push each finished meeting into a Calimero context (see HANDOVER.md).
+    # Optional: store each finished meeting in an instance of the Calimero meetings app
+    # (calimero-app/). See HANDOVER.md.
     "calimero": {
         "enabled": False,
+        "instance": "",          # the app instance id (or a meroctl alias in "meroctl" mode)
+        "participants": [],      # accounts that may read every meeting, besides you
+        "mode": "proxy",         # "proxy" (via `meroctl proxy`) or "meroctl" (short meetings only)
+        "proxy_url": "http://127.0.0.1:2580",
         "meroctl": "meroctl",
-        "node": "",
-        "context_id": "",
-        "member_key": "",
-        "method": "add_meeting",
+        "node": "",              # meroctl mode: a saved node alias or URL; empty = meroctl's default
+        "method": "addMeeting",
     },
 }
 
