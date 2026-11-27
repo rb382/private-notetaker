@@ -4,7 +4,6 @@ description = "Private Notetaker: each meeting's transcript, notes and receipt, 
 version = "0.0.1"
 edition = "2021"
 authors = ["Rune Bentien"]
-license = "MIT OR Apache-2.0"
 repository = "https://github.com/rb382/private-notetaker"
 publish = false
 
